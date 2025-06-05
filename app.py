@@ -9,7 +9,7 @@ from pdf_utils import load_pdf_text, split_text_to_chunks
 from vector_utils import create_vector_store
 from qa_engine import answer_question
 
-st.set_page_config(page_title="PDFMind", layout="wide")
+st.set_page_config(page_title="RAG-Based PDF Explorer", layout="wide")
 
 # --- styles ---
 with open("styles.css") as f:
@@ -41,7 +41,7 @@ for key, default in {
         st.session_state[key] = default
 
 # --- File Upload & Processing ---
-st.title("📄 PDFMind - Ask Questions to Your PDF")
+st.title("📄 RAG-Based PDF Explorer - Ask Questions to Your PDF")
 uploaded = st.file_uploader("Upload a PDF", type=["pdf"])
 
 if uploaded:
