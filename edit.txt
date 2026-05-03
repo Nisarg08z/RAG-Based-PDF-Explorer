@@ -1,3 +1,57 @@
+vector_utils
+from langchain.vectorstores import Qdrant
+from langchain.embeddings import OpenAIEmbeddings
+from langchain.schema import Document
+
+QDRANT_URL = "http://localhost:6333"
+
+def create_vector_store(chunks, collection_name):
+    embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
+    docs = [Document(page_content=ch["content"], metadata=ch["metadata"]) for ch in chunks]
+    return Qdrant.from_documents(docs, embeddings, collection_name=collection_name, url=QDRANT_URL)
+
+qa_engine
+from langchain.chat_models import ChatOpenAI
+
+def answer_question(question, vector_store, api_key, k):
+    matches = vector_store.similarity_search(question, k=k)
+    context = "\n\n".join(
+        f"[Page {m.metadata.get('page')}] {m.page_content}" for m in matches
+    )
+    prompt = f"""
+You are a helpful assistant answering based on the following PDF excerpts:
+
+{context}
+
+User question: {question}
+
+Respond clearly, professionally, and always mention the page numbers.
+"""
+    llm = ChatOpenAI(model="gpt-4.1-mini", temperature=0.1, openai_api_key=api_key)
+    answer = llm.predict(prompt)
+
+    return answer, [{"page": m.metadata.get("page"), "content": m.page_content} for m in matches]
+
+pdf_utils
+from PyPDF2 import PdfReader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
+def load_pdf_text(file) -> list[str]:
+    reader = PdfReader(file)
+    return [page.extract_text() or "" for page in reader.pages]
+
+def split_text_to_chunks(pages: list[str], chunk_size: int, overlap: int) -> list:
+    splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=overlap)
+    all_chunks = []
+    for i, page in enumerate(pages):
+        for j, chunk in enumerate(splitter.split_text(page)):
+            all_chunks.append({
+                "content": chunk,
+                "metadata": {"page": i + 1, "chunk_id": f"p{i+1}_c{j+1}"}
+            })
+    return all_chunks
+
+app
 import os
 import time
 from datetime import datetime
